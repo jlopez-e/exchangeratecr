@@ -1,0 +1,6 @@
+name: Tipo de Cambio CRC
+description: Tipo de cambio entre CRC y USD.
+package: ExchangeRate
+
+type: module
+core: 8.x
