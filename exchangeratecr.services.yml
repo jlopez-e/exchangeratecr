@@ -1,0 +1,3 @@
+services:
+  exchangeratecr.data_bccr_service:
+    class: Drupal\exchangeratecr\ServiceDataBCCR
