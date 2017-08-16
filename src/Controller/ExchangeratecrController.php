@@ -1,18 +1,42 @@
 <?php
-
+/**
+ * @file
+ * Contains \Drupal\exchangeratecr\ExchangeratecrController
+ */
 namespace Drupal\exchangeratecr\Controller;
-
-use Drupal\Core\Url;
-// Change following https://www.drupal.org/node/2457593
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
-
+use Drupal\Core\Controller\ControllerBase;
+use Drupal\exchangeratecr\ServiceDataBCCR;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Controller routines
+ * Class ExchangeratecrController
+ * @package Drupal\exchangeratecr\Controller
  */
-class ExchangeratecrController{
+class ExchangeratecrController extends ControllerBase{
+
+  /**
+   * @var \Drupal\exchangeratecr\ServiceDataBCCR
+   */
+  protected $serviceDataBCCR;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(ServiceDataBCCR $serviceDataBCCR) {
+    $this->$serviceDataBCCR = $serviceDataBCCR;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static($container->get('exchangeratecr.data_bccr_service'));
+  }
+
+
+
   /**
    * This callback is mapped to the path
    * 'exchangeratecr/generate/{paragraphs}/{phrases}'.
@@ -20,13 +44,47 @@ class ExchangeratecrController{
   public function generate($currencyx, $amountx) {
   }
 
+//  public function getDataFromBancoCentral($indicator,$startDate,$endDate,$name,$sublevels){
+//
+//    //Url Banco Central De Costa Rica
+//    $url= 'http://indicadoreseconomicos.bccr.fi.cr/indicadoreseconomicos/WebServices/wsIndicadoresEconomicos.asmx/ObtenerIndicadoresEconomicos';
+//
+//    //Parameters to get the Data
+//    $url.= "tcIndicador=".$indicator."&tcFechaInicio=".$startDate."&tcFechaFinal=".$endDate."&tcNombre=".$name."&tnSubNiveles=".$sublevels;
+//
+//    $test=1;
+//
+//    return  $url;
+//
+//  }
+
+
   public function currencyConverter ($form, &$form_state) {
-    // Wb Service parameters //
-    // dynamic date, and with the format dd/mm/aaaa
+
+    $indicator="317";
+    $startDate=date("j/n/Y");
+    $endDate=date("j/n/Y");
+    $name="exchangeratecr";
+    $sublevels="N";
+
+    //$url_method=  $this->serviceDataBCCR->getDataFromBancoCentralCR($indicator,$startDate,$endDate ,$name,$sublevels);
+
+
+
+
+
+//    $url_method = $this->getDataFromBancoCentral($indicator,$startDate,$endDate ,$name,$sublevels);
+
+
+    // Web Service parameters
+
+    // Dynamic date, format dd/mm/aaaa
     $fecha = date("j/n/Y");
+
     // Get the temporal variable
     $tempstorex = \Drupal::service('user.shared_tempstore')->get('exchangeratecr');
     $tempstorexx = $tempstorex->get('tempstore');
+
     // white the generated errors
     $errors = [];
 
@@ -34,7 +92,15 @@ class ExchangeratecrController{
       // connect to web server and get the data
       try {
         // reuquest to web service
+
+
+        $url= "http://indicadoreseconomicos.bccr.fi.cr/indicadoreseconomicos/WebServices/wsIndicadoresEconomicos.asmx/ObtenerIndicadoresEconomicos?tcIndicador=317&tcFechaInicio=" . $fecha . "&tcFechaFinal=" . $fecha . "&tcNombre=Oscar&tnSubNiveles=N";
+
+
         $data = file_get_contents("http://indicadoreseconomicos.bccr.fi.cr/indicadoreseconomicos/WebServices/wsIndicadoresEconomicos.asmx/ObtenerIndicadoresEconomicos?tcIndicador=317&tcFechaInicio=" . $fecha . "&tcFechaFinal=" . $fecha . "&tcNombre=Oscar&tnSubNiveles=N");
+
+
+
         // process the xml response and get the needed data
         $str = $data;
         $startDelimiter = '<NUM_VALOR>';

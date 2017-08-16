@@ -4,15 +4,28 @@ namespace Drupal\exchangeratecr\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\exchangeratecr\Controller\ExchangeratecrController;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class ExchangeratecrBlockForm extends FormBase {
+class ExchangeratecrBlockForm extends FormBase{
 
-  protected $tipocambio;
+//  /**
+//   * @var \Drupal\exchangeratecr\ServiceDataBCCR
+//   */
+//  protected $serviceDataBCCR;
+//
+//  /**
+//   * {@inheritdoc}
+//   */
+//  public function __construct(ServiceDataBCCR $serviceDataBCCR) {
+//    $this->$serviceDataBCCR = $serviceDataBCCR;
+//  }
 
-  public function __construct() {
-    $this->tipocambio = new ExchangeratecrController();
-  }
+//  /**
+//   * {@inheritdoc}
+//   */
+//  public static function create(ContainerInterface $container) {
+//    return new static($container->get('exchangeratecr.data_bccr_service'));
+//  }
 
   /**
    * {@inheritdoc}
@@ -23,16 +36,26 @@ class ExchangeratecrBlockForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state){
+
+    $startDate=date("j/n/Y");
+    $endDate=date("j/n/Y");
+    $name="exchangeratecr";
+    $sublevels="N";
+
+    $serviceDataBCCR = \Drupal::service('exchangeratecr.data_bccr_service');
+    $buyRate = $serviceDataBCCR->getDataFromBancoCentralCR('317',$startDate,$endDate ,$name,$sublevels);
+    $sellRate = $serviceDataBCCR->getDataFromBancoCentralCR('318',$startDate,$endDate ,$name,$sublevels);
+
 
     //Just to know what is the dollar buy rate according to Banco Central de Costa RIca
     $form['buy_rate'] = [
-      '#markup' =>"<p >".$this->t('Buy Rate :')."</p>",
+      '#markup' =>"<p >".$this->t('Buy Rate').' : '.$buyRate."</p>",
     ];
 
     //Just to know what is the dollar sell rate according to Banco Central de Costa RIca
     $form['sell_rate'] = [
-      '#markup' =>"<p >".$this->t('Sell Rate :')."</p>",
+      '#markup' =>"<p >".$this->t('Sell Rate').' : '.$sellRate."</p>",
     ];
 
     //Amount to Convert
@@ -87,7 +110,7 @@ class ExchangeratecrBlockForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Convert'),
       '#ajax' => array (
-        'callback' => 'Drupal\exchangeratecr\Controller\ExchangeratecrController::currencyConverter',
+        //   'callback' => 'Drupal\exchangeratecr\Controller\ExchangeratecrController::currencyConverter',
 //        'wrapper' => 'edit-currency',
       ),
     );
