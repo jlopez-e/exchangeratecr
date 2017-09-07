@@ -44,8 +44,7 @@ class ExchangeratecrBlockForm extends FormBase{
     $form['amount'] = array(
       '#type' => 'number',
       '#title' => $this->t('Amount'),
-      '#min' => 0,
-      '#required' => TRUE,
+      '#limit_validation_errors' => array(), // No validation.
     );
 
     //Options for select: Dollars, Colons
@@ -106,37 +105,48 @@ class ExchangeratecrBlockForm extends FormBase{
     //Amount to convert
     $amount = $form_state->getValue('amount');
 
-    //Currency from I want to convert
-    $currency_from = $form_state->getValue('currency_from');
-
-    //Service to use the function convertCurrency
-    $serviceDataBCCR = \Drupal::service('exchangeratecr.data_bccr_service');
-
-    //Converting result
-    $result = number_format($serviceDataBCCR->convertCurrecy($currency_from, $amount), 2, '.', ' ');
-
-    //Sign of the result
-    $sign = '';
-    switch ($currency_from) {
-      case 'CRC':
-        $sign = '$ ';
-        break;
-      case 'USD':
-        $sign = '₡ ';
-        break;
-      default;
-        break;
-    }
     //Ajax Response
     $response = new AjaxResponse();
 
-    // set the values
-    $response->addCommand(new ReplaceCommand(
-      '#edit-total',
-      '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="'.$sign.''.$result.'" size="35" maxlength="128" placeholder="Total convertido" class="form-text">'));
-    $response->addCommand(new ReplaceCommand(
-      '#edit-total--description',
-      '<div id="edit-total--description" class="description"></div>'));
+    if($amount > 0) {
+
+      //Currency from I want to convert
+      $currency_from = $form_state->getValue('currency_from');
+
+      //Service to use the function convertCurrency
+      $serviceDataBCCR = \Drupal::service('exchangeratecr.data_bccr_service');
+
+      //Converting result
+      $result = number_format($serviceDataBCCR->convertCurrecy($currency_from, $amount), 2, '.', ' ');
+
+      //Sign of the result
+      $sign = '';
+      switch ($currency_from) {
+        case 'CRC':
+          $sign = '$ ';
+          break;
+        case 'USD':
+          $sign = '₡ ';
+          break;
+        default;
+          break;
+      }
+      // set the values
+      $response->addCommand(new ReplaceCommand(
+        '#edit-total',
+        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="' . $sign . '' . $result . '" size="35" maxlength="128" placeholder="Total convertido" class="form-text">'));
+      $response->addCommand(new ReplaceCommand(
+        '#edit-total--description',
+        '<div id="edit-total--description" class="description"></div>'));
+
+    }else{
+      // set the values
+
+      $message = t('The Amount should be greater than 0');
+      $response->addCommand(new ReplaceCommand(
+        '#edit-total',
+        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="' . $message . '" size="35" maxlength="128" placeholder="Total convertido" class="form-text">'));
+    }
 
     return $response;
   }
