@@ -1,4 +1,8 @@
 <?php
+namespace Drupal\exchangeratecr;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\ReplaceCommand;
+
 /**
  * @file
  * Contains \Drupal\exchangeratecr\ServiceDataBCCR.
@@ -72,7 +76,13 @@ class ServiceDataBCCR {
     return floatval($numValor);
   }
 
-  public function convertCurrecy($from, $to, $amount) {
+  /**
+   *  This method convert the currency
+   * @param $from
+   * @param $amount
+   * @return float
+   */
+  public function convertCurrecy($from, $amount) {
 
     //Variable to Store the conversion result
     $result=0;
@@ -96,12 +106,10 @@ class ServiceDataBCCR {
 
       case 'USD':
         $result = $amount*$sellRate;
-
         break;
     }
-
     return $result;
-
   }
+
 
 }
