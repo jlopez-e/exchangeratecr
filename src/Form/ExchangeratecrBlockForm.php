@@ -4,28 +4,10 @@ namespace Drupal\exchangeratecr\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\ReplaceCommand;
 
 class ExchangeratecrBlockForm extends FormBase{
-
-//  /**
-//   * @var \Drupal\exchangeratecr\ServiceDataBCCR
-//   */
-//  protected $serviceDataBCCR;
-//
-//  /**
-//   * {@inheritdoc}
-//   */
-//  public function __construct(ServiceDataBCCR $serviceDataBCCR) {
-//    $this->$serviceDataBCCR = $serviceDataBCCR;
-//  }
-
-//  /**
-//   * {@inheritdoc}
-//   */
-//  public static function create(ContainerInterface $container) {
-//    return new static($container->get('exchangeratecr.data_bccr_service'));
-//  }
 
   /**
    * {@inheritdoc}
@@ -76,14 +58,16 @@ class ExchangeratecrBlockForm extends FormBase{
     $form['currency_from'] = array(
       '#type' => 'select',
       '#title' => $this->t('From'),
-      '#options' => $options
+      '#options' => $options,
+      '#default_value' => 'USD',
     );
 
     //Currency to I want to convert
     $form['currency_to'] = array(
       '#type' => 'select',
       '#title' => $this->t('To'),
-      '#options' => $options
+      '#options' => $options,
+      '#default_value' => 'CRC',
     );
 
     //Input to show the conversion result
@@ -95,23 +79,12 @@ class ExchangeratecrBlockForm extends FormBase{
       '#attributes' => ['readonly' => 'readonly'],
     );
 
-//    $form['total'] = array(
-//      '#type' => 'textfield',
-//      '#title' => $this->t('Total in Costa Rican colon'),
-//      '#placeholder' => $this->t('Total converted'),
-//      '#disabled' => true,
-//      '#description' => $this->t(''),
-//      '#size' => '35',
-//    );
-//    $form['actions']['#type'] = 'actions';
-
-
     $form['actions'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Convert'),
       '#ajax' => array (
-        //   'callback' => 'Drupal\exchangeratecr\Controller\ExchangeratecrController::currencyConverter',
-//        'wrapper' => 'edit-currency',
+        'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::convertCurrecyCallback',
+        'wrapper' => 'edit-currency',
       ),
     );
 
@@ -125,6 +98,47 @@ class ExchangeratecrBlockForm extends FormBase{
 
   }
 
-  public function submitForm(array &$form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state){
   }
+
+  public function convertCurrecyCallback(array &$form, FormStateInterface $form_state) {
+
+    //Amount to convert
+    $amount = $form_state->getValue('amount');
+
+    //Currency from I want to convert
+    $currency_from = $form_state->getValue('currency_from');
+
+    //Service to use the function convertCurrency
+    $serviceDataBCCR = \Drupal::service('exchangeratecr.data_bccr_service');
+
+    //Converting result
+    $result = number_format($serviceDataBCCR->convertCurrecy($currency_from, $amount), 2, '.', ' ');
+
+    //Sign of the result
+    $sign = '';
+    switch ($currency_from) {
+      case 'CRC':
+        $sign = '$ ';
+        break;
+      case 'USD':
+        $sign = '₡ ';
+        break;
+      default;
+        break;
+    }
+    //Ajax Response
+    $response = new AjaxResponse();
+
+    // set the values
+    $response->addCommand(new ReplaceCommand(
+      '#edit-total',
+      '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="'.$sign.''.$result.'" size="35" maxlength="128" placeholder="Total convertido" class="form-text">'));
+    $response->addCommand(new ReplaceCommand(
+      '#edit-total--description',
+      '<div id="edit-total--description" class="description"></div>'));
+
+    return $response;
+  }
+
 }
