@@ -49,8 +49,8 @@ class ExchangeratecrBlockForm extends FormBase{
 
     //Options for select: Dollars, Colons
     $options = [
-      'CRC' => '₡',
-      'USD' => '$'
+      'CRC' => '₡ CRC',
+      'USD' => '$ USD'
     ];
 
     //Currency I want to convert
@@ -59,6 +59,12 @@ class ExchangeratecrBlockForm extends FormBase{
       '#title' => $this->t('From'),
       '#options' => $options,
       '#default_value' => 'USD',
+      '#prefix' => "<div class ='wrapper_select_currency_from'>",
+      '#suffix' => '</div>',
+      '#ajax' => array (
+        'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::onSelectFromChange',
+        'wrapper' => 'edit-currency',
+      ),
     );
 
     //Currency to I want to convert
@@ -67,6 +73,12 @@ class ExchangeratecrBlockForm extends FormBase{
       '#title' => $this->t('To'),
       '#options' => $options,
       '#default_value' => 'CRC',
+      '#prefix' => "<div class ='wrapper_select_currency_to'>",
+      '#suffix' => '</div>',
+      '#ajax' => array (
+        'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::onSelectToChange',
+        'wrapper' => 'edit-currency',
+      ),
     );
 
     //Input to show the conversion result
@@ -100,6 +112,12 @@ class ExchangeratecrBlockForm extends FormBase{
   public function submitForm(array &$form, FormStateInterface $form_state){
   }
 
+  /**
+   *  This method use the service to do the conversion
+   * @param array $form
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   */
   public function convertCurrecyCallback(array &$form, FormStateInterface $form_state) {
 
     //Amount to convert
@@ -134,20 +152,104 @@ class ExchangeratecrBlockForm extends FormBase{
       // set the values
       $response->addCommand(new ReplaceCommand(
         '#edit-total',
-        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="' . $sign . '' . $result . '" size="35" maxlength="128" placeholder="Total convertido" class="form-text">'));
+        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="' . $sign . '' . $result . '" size="35" maxlength="128" placeholder="'.t('Total converted').'" class="form-text">'));
       $response->addCommand(new ReplaceCommand(
         '#edit-total--description',
         '<div id="edit-total--description" class="description"></div>'));
 
     }else{
-      // set the values
 
+      // set the values
       $message = t('The Amount should be greater than 0');
       $response->addCommand(new ReplaceCommand(
         '#edit-total',
-        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="' . $message . '" size="35" maxlength="128" placeholder="Total convertido" class="form-text">'));
+        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="' . $message . '" size="35" maxlength="128" placeholder="'.t('Total converted').'" class="form-text">'));
     }
 
+    return $response;
+  }
+
+  /**
+   * This method is for validate always option from currency is different than option to currency
+   * @param array $form
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   */
+  public function onSelectFromChange(array &$form, FormStateInterface $form_state){
+
+    //Ajax Response
+    $response = new AjaxResponse();
+
+    //Currency from
+    $currency_from = $form_state->getValue('currency_from');
+
+    //Currency to
+    $currency_to = $form_state->getValue('currency_to');
+
+    if($currency_from == $currency_to){
+
+      switch ($currency_from) {
+        case 'CRC':
+          $form['currency_to']['#value']=  'USD';
+          break;
+
+        case 'USD':
+          $form['currency_to']['#value']=  'CRC';
+          break;
+
+        default:
+          break;
+      }
+      $response->addCommand(new ReplaceCommand(
+        '#edit-total',
+        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="" size="35" maxlength="128" placeholder="'.t('Total converted').'" class="form-text">'));
+      $response->addCommand(new ReplaceCommand(
+        '.wrapper_select_currency_to',
+        $form['currency_to']
+      ));
+    }
+    return $response;
+  }
+
+  /**
+   *  This method is for validate always option to currency is different than option from currency
+   * @param array $form
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   */
+  public function onSelectToChange(array &$form, FormStateInterface $form_state){
+
+    //Ajax Response
+    $response = new AjaxResponse();
+
+    //Currency to
+    $currency_to = $form_state->getValue('currency_to');
+
+    //Currency from
+    $currency_from = $form_state->getValue('currency_from');
+
+    if($currency_to == $currency_from){
+
+      switch ($currency_to) {
+        case 'CRC':
+          $form['currency_from']['#value']=  'USD';
+          break;
+
+        case 'USD':
+          $form['currency_from']['#value']=  'CRC';
+          break;
+
+        default:
+          break;
+      }
+      $response->addCommand(new ReplaceCommand(
+        '#edit-total',
+        '<input data-drupal-selector="edit-total" disabled="disabled" type="text" id="edit-total" name="total" value="" size="35" maxlength="128" placeholder="'.t('Total converted').'" class="form-text">'));
+      $response->addCommand(new ReplaceCommand(
+        '.wrapper_select_currency_from',
+        $form['currency_from']
+      ));
+    }
     return $response;
   }
 
