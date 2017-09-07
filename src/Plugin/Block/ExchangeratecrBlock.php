@@ -1,11 +1,8 @@
 <?php
 
 namespace Drupal\exchangeratecr\Plugin\Block;
-
-use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Session\AccountInterface;
 
 /**
  * Provides a block.
@@ -28,14 +25,7 @@ class ExchangeratecrBlock extends BlockBase {
   /**
    * {@inheritdoc}
    */
-//  protected function blockAccess(AccountInterface $account) {
-//    return AccessResult::allowedIfHasPermission($account, 'generate lorem ipsum');
-//  }
-  /**
-   * {@inheritdoc}
-   */
   public function blockForm($form, FormStateInterface $form_state) {
-
     $form = parent::blockForm($form, $form_state);
     return $form;
   }
@@ -45,6 +35,5 @@ class ExchangeratecrBlock extends BlockBase {
   public function blockSubmit($form, FormStateInterface $form_state) {
     $this->setConfigurationValue('exchangeratecr_block_settings', $form_state->getValue('exchangeratecr_block_settings'));
   }
-
 }
 
