@@ -22,6 +22,8 @@ class ServiceDataBCCR {
    */
   public function getDataFromBancoCentralCR($indicator, $startDate, $endDate, $name, $sublevels) {
 
+    $response = false;
+
     //Url Banco Central De Costa Rica
     $url = 'http://indicadoreseconomicos.bccr.fi.cr/indicadoreseconomicos/WebServices/wsIndicadoresEconomicos.asmx/ObtenerIndicadoresEconomicosXML';
 
@@ -35,22 +37,17 @@ class ServiceDataBCCR {
     curl_setopt_array($curl, array(
       CURLOPT_RETURNTRANSFER => 1,
       CURLOPT_URL => $url . $parameters,
+      CURLOPT_FAILONERROR => true,
     ));
 
-    // Send the request & save response to $respose
-    if (!curl_exec($curl)) {
-      die('Error: "' . curl_error($curl) . '" - Code: ' . curl_errno($curl));
-    }
-    else {
-      $response = curl_exec($curl);
-    }
-
-    $value = $this->getIndicator($response);
-
-    // Close request to clear up some resources
+    $xml = curl_exec($curl);
     curl_close($curl);
 
-    return $value;
+    if($xml !== false) {
+      $response = $this->getIndicator($xml);
+    }
+
+    return $response;
 
   }
 
@@ -60,20 +57,32 @@ class ServiceDataBCCR {
    * @return float
    */
   public function getIndicator($xml) {
+    $numValor = false;
 
-    //Getting the first part of xml from Banco Central
-    $first_xml = new \SimpleXMLElement($xml);
+    if($xml !== false) {
 
-    //We have to parse again to get the values from Banco Central
-    $second_xml = $first_xml[0];
+      $first_xml = new \SimpleXMLElement($xml);
 
-    //Now we have the values and we can access to them
-    $values = new \SimpleXMLElement($second_xml);
+      if($first_xml !== false) {
 
-    //Getting the value num_valor
-    $numValor = $values->INGC011_CAT_INDICADORECONOMIC[0]->NUM_VALOR;
+        $second_xml = $first_xml[0];
 
-    return floatval($numValor);
+        if($second_xml !== false){
+
+          $values = new \SimpleXMLElement($second_xml);
+
+          if($values !== false){
+
+            $value = $values->INGC011_CAT_INDICADORECONOMIC[0]->NUM_VALOR;
+
+            if($value){
+              $numValor = floatval($value);
+            }
+          }
+        }
+      }
+    }
+    return $numValor;
   }
 
   /**
