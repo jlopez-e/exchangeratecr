@@ -9,6 +9,8 @@ use Drupal\Core\Ajax\ReplaceCommand;
  */
 namespace Drupal\exchangeratecr;
 
+use GuzzleHttp\Exception\RequestException;
+
 class ServiceDataBCCR {
 
   /**
@@ -27,31 +29,36 @@ class ServiceDataBCCR {
     //Url Banco Central De Costa Rica
     $url = 'http://indicadoreseconomicos.bccr.fi.cr/indicadoreseconomicos/WebServices/wsIndicadoresEconomicos.asmx/ObtenerIndicadoresEconomicosXML';
 
-    //Parameters to get the Data
-    $parameters = "?tcIndicador=" . $indicator . "&tcFechaInicio=" . $startDate . "&tcFechaFinal=" . $endDate . "&tcNombre=" . $name . "&tnSubNiveles=" . $sublevels;
+    // Create a HTTP client.
+    $client = \Drupal::httpClient();
 
-    // Get cURL resource
-    $curl = curl_init();
+    try {
+      // Set options for our HTTP request.
+      $request = $client->request('GET', $url, [
+        'query' => [
+          'tcIndicador' => $indicator,
+          'tcFechaInicio' => $startDate,
+          'tcFechaFinal' => $endDate,
+          'tcNombre' => $name,
+          'tnSubNiveles' => $sublevels
+        ]
+      ]);
 
-    // Set options
-    curl_setopt_array($curl, array(
-      CURLOPT_RETURNTRANSFER => 1,
-      CURLOPT_URL => $url . $parameters,
-      CURLOPT_FAILONERROR => true,
-    ));
+      // If successful HTTP query.
+      if ($request->getStatusCode() == 200) {
+        $xml = $request->getBody()->getContents();
+        $response = $this->getIndicator($xml,$indicator);
+      }
 
-    $xml = curl_exec($curl);
-    curl_close($curl);
-
-    if($xml !== false) {
-      $response = $this->getIndicator($xml,$indicator);
-    }else{
+    }catch (RequestException $e){
       $dataTempStored= $this->getSharedTempStore($indicator);
+
       if($dataTempStored != null){
         $numValor = $dataTempStored['value'];
         $response = $numValor;
       }
     }
+
     return $response;
   }
 
