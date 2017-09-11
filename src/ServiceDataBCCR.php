@@ -44,11 +44,15 @@ class ServiceDataBCCR {
     curl_close($curl);
 
     if($xml !== false) {
-      $response = $this->getIndicator($xml);
+      $response = $this->getIndicator($xml,$indicator);
+    }else{
+      $dataTempStored= $this->getSharedTempStore($indicator);
+      if($dataTempStored != null){
+        $numValor = $dataTempStored['value'];
+        $response = $numValor;
+      }
     }
-
     return $response;
-
   }
 
   /**
@@ -56,10 +60,10 @@ class ServiceDataBCCR {
    * @param $xml
    * @return float
    */
-  public function getIndicator($xml) {
+  public function getIndicator($xml,$indicator) {
     $numValor = false;
 
-    if($xml !== false) {
+    if($xml !== false){
 
       $first_xml = new \SimpleXMLElement($xml);
 
@@ -77,6 +81,11 @@ class ServiceDataBCCR {
 
             if($value){
               $numValor = floatval($value);
+              $values_shared_temp_store= array(
+                'date'=> date("j/n/Y"),
+                'value'=>$numValor,
+              );
+              $this->setSharedTempStore($values_shared_temp_store,$indicator);
             }
           }
         }
@@ -110,15 +119,26 @@ class ServiceDataBCCR {
 
     switch ($from) {
       case 'CRC':
-        $result = $amount/$buyRate;
+        $result = $amount/$sellRate;
         break;
 
       case 'USD':
-        $result = $amount*$sellRate;
+        $result = $amount*$buyRate;
+        $var=1;
         break;
     }
     return $result;
   }
 
+  public function setSharedTempStore($values,$indicator){
+    $shared_temp_store = \Drupal::service('user.shared_tempstore')->get('exchangeratecr');
+    $shared_temp_store->set('exchange_rate_data_'.$indicator, $values);
+  }
+
+  public function getSharedTempStore($indicator){
+    $shared_temp_store = \Drupal::service('user.shared_tempstore')->get('exchangeratecr');
+    $values = $shared_temp_store->get('exchange_rate_data_'.$indicator);;
+    return $values;
+  }
 
 }
