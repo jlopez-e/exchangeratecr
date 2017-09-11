@@ -1,5 +1,5 @@
-name: Tipo de Cambio CRC
-description: Tipo de cambio entre CRC y USD.
+name: Exchange Rate CR
+description: Exchange rate between CRC and USD.
 package: ExchangeRate
 
 type: module
