@@ -1,0 +1,8 @@
+{
+  "name": "drupal/exchangeratecr",
+  "type": "drupal-module",
+  "description": "Exchange rate between CRC and USD.",
+  "keywords": ["Drupal"],
+  "minimum-stability": "dev",
+  "require": { }
+}
