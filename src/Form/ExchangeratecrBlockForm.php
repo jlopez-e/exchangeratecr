@@ -18,87 +18,111 @@ class ExchangeratecrBlockForm extends FormBase{
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state){
+  public function buildForm(array $form, FormStateInterface $form_state) {
 
-    $startDate=date("j/n/Y");
-    $endDate=date("j/n/Y");
-    $name="exchangeratecr";
-    $sublevels="N";
+    $startDate = date("j/n/Y");
+    $endDate = date("j/n/Y");
+    $name = "exchangeratecr";
+    $sublevels = "N";
 
     $serviceDataBCCR = \Drupal::service('exchangeratecr.data_bccr_service');
-    $buyRate = $serviceDataBCCR->getDataFromBancoCentralCR('317',$startDate,$endDate ,$name,$sublevels);
-    $sellRate = $serviceDataBCCR->getDataFromBancoCentralCR('318',$startDate,$endDate ,$name,$sublevels);
 
+    $dataBuyRate = $serviceDataBCCR->getDataFromBancoCentralCR('317', $startDate, $endDate, $name, $sublevels);
+    $dataSellRate = $serviceDataBCCR->getDataFromBancoCentralCR('318', $startDate, $endDate, $name, $sublevels);
 
-    //Just to know what is the dollar buy rate according to Banco Central de Costa RIca
-    $form['buy_rate'] = [
-      '#markup' =>"<p >".$this->t('Buy Rate').' : '.$buyRate."</p>",
-    ];
+    if ($dataBuyRate['successful'] && $dataSellRate['successful']) {
 
-    //Just to know what is the dollar sell rate according to Banco Central de Costa RIca
-    $form['sell_rate'] = [
-      '#markup' =>"<p >".$this->t('Sell Rate').' : '.$sellRate."</p>",
-    ];
+      $buyRate = $dataBuyRate['value'];
+      $sellRate = $dataSellRate['value'];
+      $messageError= $dataBuyRate['message'];
 
-    //Amount to Convert
-    $form['amount'] = array(
-      '#type' => 'number',
-      '#title' => $this->t('Amount'),
-      '#limit_validation_errors' => array(), // No validation.
-    );
+      //Just to know what is the dollar buy rate according to Banco Central de Costa RIca
+      $form['buy_rate'] = [
+        '#markup' => "<p >" . $this->t('Buy Rate') . ' : ' . $buyRate . "</p>",
+      ];
 
-    //Options for select: Dollars, Colons
-    $options = [
-      'CRC' => '₡ CRC',
-      'USD' => '$ USD'
-    ];
+      //Just to know what is the dollar sell rate according to Banco Central de Costa RIca
+      $form['sell_rate'] = [
+        '#markup' => "<p >" . $this->t('Sell Rate') . ' : ' . $sellRate . "</p>",
+      ];
 
-    //Currency I want to convert
-    $form['currency_from'] = array(
-      '#type' => 'select',
-      '#title' => $this->t('From'),
-      '#options' => $options,
-      '#default_value' => 'USD',
-      '#prefix' => "<div class ='wrapper_select_currency_from'>",
-      '#suffix' => '</div>',
-      '#ajax' => array (
-        'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::onSelectFromChange',
-        'wrapper' => 'edit-currency',
-      ),
-    );
+      if (trim($messageError)) {
 
-    //Currency to I want to convert
-    $form['currency_to'] = array(
-      '#type' => 'select',
-      '#title' => $this->t('To'),
-      '#options' => $options,
-      '#default_value' => 'CRC',
-      '#prefix' => "<div class ='wrapper_select_currency_to'>",
-      '#suffix' => '</div>',
-      '#ajax' => array (
-        'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::onSelectToChange',
-        'wrapper' => 'edit-currency',
-      ),
-    );
+        //Error Message
+        $form['information_error_text'] = array(
+          '#markup' => "<p >" . t($dataBuyRate['message']) ."</p>",
+        );
+      }
 
-    //Input to show the conversion result
-    $form['total'] = array(
-      '#type' => 'textfield',
-      '#title' => $this->t('Result'),
-      '#placeholder' => $this->t('Total converted'),
-      '#size' => '35',
-      '#attributes' => ['readonly' => 'readonly'],
-    );
+      //Information Text about the data
+      $form['information_text'] = array(
+        '#markup' => "<p >" . $this->t('Source: Banco Central de Costa Rica on ') . ' : ' . $dataBuyRate['date'] . "</p>",
+      );
 
-    $form['actions'] = array(
-      '#type' => 'submit',
-      '#value' => $this->t('Convert'),
-      '#ajax' => array (
-        'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::convertCurrecyCallback',
-        'wrapper' => 'edit-currency',
-      ),
-    );
+      //Amount to Convert
+      $form['amount'] = array(
+        '#type' => 'number',
+        '#title' => $this->t('Amount'),
+        '#limit_validation_errors' => array(), // No validation.
+      );
 
+      //Options for select: Dollars, Colons
+      $options = [
+        'CRC' => '₡ CRC',
+        'USD' => '$ USD'
+      ];
+
+      //Currency I want to convert
+      $form['currency_from'] = array(
+        '#type' => 'select',
+        '#title' => $this->t('From'),
+        '#options' => $options,
+        '#default_value' => 'USD',
+        '#prefix' => "<div class ='wrapper_select_currency_from'>",
+        '#suffix' => '</div>',
+        '#ajax' => array(
+          'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::onSelectFromChange',
+          'wrapper' => 'edit-currency',
+        ),
+      );
+
+      //Currency to I want to convert
+      $form['currency_to'] = array(
+        '#type' => 'select',
+        '#title' => $this->t('To'),
+        '#options' => $options,
+        '#default_value' => 'CRC',
+        '#prefix' => "<div class ='wrapper_select_currency_to'>",
+        '#suffix' => '</div>',
+        '#ajax' => array(
+          'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::onSelectToChange',
+          'wrapper' => 'edit-currency',
+        ),
+      );
+
+      //Input to show the conversion result
+      $form['total'] = array(
+        '#type' => 'textfield',
+        '#title' => $this->t('Result'),
+        '#placeholder' => $this->t('Total converted'),
+        '#size' => '35',
+        '#attributes' => ['readonly' => 'readonly'],
+      );
+
+      $form['actions'] = array(
+        '#type' => 'submit',
+        '#value' => $this->t('Convert'),
+        '#ajax' => array(
+          'callback' => 'Drupal\exchangeratecr\Form\ExchangeratecrBlockForm::convertCurrecyCallback',
+          'wrapper' => 'edit-currency',
+        ),
+      );
+    }
+    else{
+      $form['information_text'] = array(
+        '#markup' => "<p >" . t($dataBuyRate['message']) . "</p>",
+      );
+    }
     return $form;
   }
 

@@ -1,16 +1,10 @@
 <?php
 namespace Drupal\exchangeratecr;
-use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\ReplaceCommand;
-
+use GuzzleHttp\Exception\RequestException;
 /**
  * @file
  * Contains \Drupal\exchangeratecr\ServiceDataBCCR.
  */
-namespace Drupal\exchangeratecr;
-
-use GuzzleHttp\Exception\RequestException;
-
 class ServiceDataBCCR {
 
   /**
@@ -20,11 +14,16 @@ class ServiceDataBCCR {
    * @param $endDate
    * @param $name
    * @param $sublevels
-   * @return float
+   * @return array
    */
   public function getDataFromBancoCentralCR($indicator, $startDate, $endDate, $name, $sublevels) {
 
-    $response = false;
+    $response = array(
+      'successful' => false,
+      'date' => $startDate,
+      'value' => 0,
+      'message' => 'At the moment there is no communication with the Bank.',
+    );
 
     //Url Banco Central De Costa Rica
     $url = 'http://indicadoreseconomicos.bccr.fi.cr/indicadoreseconomicos/WebServices/wsIndicadoresEconomicos.asmx/ObtenerIndicadoresEconomicosXML';
@@ -47,15 +46,18 @@ class ServiceDataBCCR {
       // If successful HTTP query.
       if ($request->getStatusCode() == 200) {
         $xml = $request->getBody()->getContents();
-        $response = $this->getIndicator($xml,$indicator);
+        $response['value'] = $this->getIndicator($xml,$indicator);
+        $response['successful'] = true;
+        $response['message'] = '';
       }
 
     }catch (RequestException $e){
       $dataTempStored= $this->getSharedTempStore($indicator);
 
-      if($dataTempStored != null){
-        $numValor = $dataTempStored['value'];
-        $response = $numValor;
+      if($dataTempStored['successful']){
+        $response['value'] = $dataTempStored['value'];
+        $response['date'] = $dataTempStored['date'];
+        $response['successful'] = true;
       }
     }
 
@@ -63,11 +65,13 @@ class ServiceDataBCCR {
   }
 
   /**
-   *  This method process the xml from the Banco Central and get the value of the indicator
+   *  This method process the xml from the Banco Central and get the value of the indicator, also save
+   *  the value in temporal store
    * @param $xml
    * @return float
    */
   public function getIndicator($xml,$indicator) {
+
     $numValor = false;
 
     if($xml !== false){
@@ -91,6 +95,7 @@ class ServiceDataBCCR {
               $values_shared_temp_store= array(
                 'date'=> date("j/n/Y"),
                 'value'=>$numValor,
+                'successful' => true,
               );
               $this->setSharedTempStore($values_shared_temp_store,$indicator);
             }
@@ -119,10 +124,10 @@ class ServiceDataBCCR {
     $sublevels="N";
 
     //Buy Rate
-    $buyRate = $this->getDataFromBancoCentralCR('317',$startDate,$endDate ,$name,$sublevels);
+    $buyRate = $this->getDataFromBancoCentralCR('317',$startDate,$endDate ,$name,$sublevels)['value'];
 
     //Sell Rate
-    $sellRate = $this->getDataFromBancoCentralCR('318',$startDate,$endDate ,$name,$sublevels);
+    $sellRate = $this->getDataFromBancoCentralCR('318',$startDate,$endDate ,$name,$sublevels)['value'];
 
     switch ($from) {
       case 'CRC':
@@ -131,21 +136,51 @@ class ServiceDataBCCR {
 
       case 'USD':
         $result = $amount*$buyRate;
-        $var=1;
         break;
     }
     return $result;
   }
 
+  /**
+   *  This method is to save variables in temporal store
+   * @param $values
+   * @param $indicator
+   */
   public function setSharedTempStore($values,$indicator){
     $shared_temp_store = \Drupal::service('user.shared_tempstore')->get('exchangeratecr');
     $shared_temp_store->set('exchange_rate_data_'.$indicator, $values);
   }
 
+  /**
+   *  This method is to get the variables in temporal store
+   * @param $indicator
+   * @return array
+   */
   public function getSharedTempStore($indicator){
+
+    $response= array(
+      'successful' => false,
+      'date'=> null,
+      'value'=> 0
+    );
+
     $shared_temp_store = \Drupal::service('user.shared_tempstore')->get('exchangeratecr');
-    $values = $shared_temp_store->get('exchange_rate_data_'.$indicator);;
-    return $values;
+    $values = $shared_temp_store->get('exchange_rate_data_'.$indicator);
+
+    if($values != null){
+      $response['successful'] = true;
+      $response['value'] = $values['value'];
+      $response['date'] = $values['date'];
+    }
+    return $response;
   }
 
+  /**
+   *  This method is to delete the variable in temporal store
+   * @param $indicator
+   */
+  public function deleteShardTempStore($indicator){
+    $shared_temp_store = \Drupal::service('user.shared_tempstore')->get('exchangeratecr');
+    $shared_temp_store->delete('exchange_rate_data_'.$indicator);
+  }
 }
